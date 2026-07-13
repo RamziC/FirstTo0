@@ -18,27 +18,31 @@ const io = new Server(server, {
 app.use(express.static(path.join(__dirname, 'public')));
 
 let gameState = {
-    health: 0,
-    maxHealth: 0,
+    health: 2000, // Explicitly start with base health
+    maxHealth: 2000,
     isGameOver: false,
     winnerId: null,
     usedHeavyAttack: {}
 };
 
 function updateMaxHealth() {
-    const playerCount = io.engine.clientsCount;
-    // Increased base threshold to 2,000 HP per player
-    const calculatedMax = Math.max(1, playerCount) * 2000; 
-    gameState.maxHealth = calculatedMax;
-
+    const playerCount = Math.max(1, io.engine.clientsCount);
+    const newMaxHealth = playerCount * 2000;
+    
     if (!gameState.isGameOver) {
-        gameState.health = Math.min(gameState.health || calculatedMax, calculatedMax);
+        // Calculate how much damage has already been taken
+        const damageTaken = gameState.maxHealth - gameState.health;
+        gameState.maxHealth = newMaxHealth;
+        // Adjust current health so previous damage carries over cleanly
+        gameState.health = Math.max(1, newMaxHealth - damageTaken);
+    } else {
+        gameState.maxHealth = newMaxHealth;
     }
 }
 
 function resetGame() {
-    const playerCount = io.engine.clientsCount;
-    gameState.maxHealth = Math.max(1, playerCount) * 2000;
+    const playerCount = Math.max(1, io.engine.clientsCount);
+    gameState.maxHealth = playerCount * 2000;
     gameState.health = gameState.maxHealth;
     gameState.isGameOver = false;
     gameState.winnerId = null;
@@ -62,12 +66,9 @@ function broadcastState() {
 
 io.on('connection', (socket) => {
     gameState.usedHeavyAttack[socket.id] = false;
-    updateMaxHealth();
     
-    if (gameState.health === 0 && !gameState.isGameOver) {
-        gameState.health = gameState.maxHealth;
-    }
-
+    // Recalculate lobby scaling on join
+    updateMaxHealth();
     broadcastState();
 
     socket.on('attack', (type) => {
