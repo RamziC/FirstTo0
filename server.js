@@ -6,9 +6,10 @@ const path = require('path');
 const app = express();
 const server = http.createServer(app);
 
+// Adjusted configuration to allow seamless handshaking on cloud platforms like Render
 const io = new Server(server, {
     cors: { origin: "*" },
-    transports: ['websocket'],
+    transports: ['polling', 'websocket'], // Restored polling fallback so Render can establish the initial handshake
     allowEIO3: false,
     pingTimeout: 2000,
     pingInterval: 1000,
@@ -18,7 +19,7 @@ const io = new Server(server, {
 app.use(express.static(path.join(__dirname, 'public')));
 
 let gameState = {
-    health: 2000, // Explicitly start with base health
+    health: 2000, 
     maxHealth: 2000,
     isGameOver: false,
     winnerId: null,
@@ -30,10 +31,8 @@ function updateMaxHealth() {
     const newMaxHealth = playerCount * 2000;
     
     if (!gameState.isGameOver) {
-        // Calculate how much damage has already been taken
         const damageTaken = gameState.maxHealth - gameState.health;
         gameState.maxHealth = newMaxHealth;
-        // Adjust current health so previous damage carries over cleanly
         gameState.health = Math.max(1, newMaxHealth - damageTaken);
     } else {
         gameState.maxHealth = newMaxHealth;
@@ -67,7 +66,6 @@ function broadcastState() {
 io.on('connection', (socket) => {
     gameState.usedHeavyAttack[socket.id] = false;
     
-    // Recalculate lobby scaling on join
     updateMaxHealth();
     broadcastState();
 
