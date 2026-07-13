@@ -2,8 +2,8 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>First to 0</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Smite Fight</title>
     <style>
         body {
             font-family: system-ui, -apple-system, sans-serif;
@@ -19,7 +19,8 @@
             box-sizing: border-box;
             user-select: none;
             -webkit-user-select: none;
-            transition: background-color 0.3s ease;
+            touch-action: none;
+            transition: background-color 0.15s ease;
         }
 
         h1 {
@@ -46,7 +47,7 @@
             width: 100%;
             background: #18181b;
             border-radius: 8px;
-            transition: width 0.05s ease-out;
+            transition: width 0.05s linear;
         }
 
         .hb-text {
@@ -67,41 +68,41 @@
 
         .btn-group {
             display: flex;
-            gap: 20px;
+            gap: 16px;
             width: 100%;
-            max-width: 600px;
+            max-width: 650px;
         }
 
         button {
             flex: 1;
             height: 140px;
-            font-size: 2rem;
+            font-size: 1.75rem;
             font-weight: 700;
             border: 2px solid #18181b;
             border-radius: 16px;
             cursor: pointer;
-            transition: transform 0.05s, background-color 0.1s, color 0.1s;
+            transition: transform 0.05s, background-color 0.1s;
             touch-action: manipulation;
         }
 
         button:active:not(:disabled) {
-            transform: scale(0.96);
+            transform: scale(0.95);
         }
 
         .btn-light {
             background-color: #ffffff;
             color: #18181b;
         }
-        .btn-light:hover:not(:disabled) {
-            background-color: #f4f4f5;
+
+        .btn-medium {
+            background-color: #71717a;
+            color: #ffffff;
+            border-color: #71717a;
         }
 
         .btn-heavy {
             background-color: #18181b;
             color: #ffffff;
-        }
-        .btn-heavy:hover:not(:disabled) {
-            background-color: #27272a;
         }
 
         button:disabled {
@@ -128,9 +129,6 @@
             flex: none;
             width: auto;
         }
-        #reset-link:hover {
-            color: #71717a;
-        }
     </style>
 </head>
 <body>
@@ -144,10 +142,11 @@
 
     <div class="btn-group">
         <button id="light-btn" class="btn-light">-100</button>
+        <button id="ability-btn" class="btn-medium">-200</button>
         <button id="heavy-btn" class="btn-heavy">-1400</button>
     </div>
 
-    <button id="reset-link">Restart</button>
+    <button id="reset-link">Reset</button>
 
     <script src="/socket.io/socket.io.js"></script>
     <script>
@@ -157,50 +156,124 @@
         const healthBar = document.getElementById('health-bar');
         const healthText = document.getElementById('health-text');
         const lightBtn = document.getElementById('light-btn');
+        const abilityBtn = document.getElementById('ability-btn');
         const heavyBtn = document.getElementById('heavy-btn');
         const resetLink = document.getElementById('reset-link');
 
-        lightBtn.addEventListener('click', () => socket.emit('attack', 'light'));
-        heavyBtn.addEventListener('click', () => socket.emit('attack', 'heavy'));
+        let currentLocalHealth = 0;
+        let currentMaxHealth = 2000;
+        let localHeavySpent = false;
+        let abilityCooldownActive = false;
+        let gameOverState = false;
+
+        function renderHealth(health, max) {
+            const percentage = Math.max(0, (health / max) * 100);
+            healthBar.style.width = `${percentage}%`;
+            healthText.innerText = `${Math.max(0, health)} / ${max}`;
+        }
+
+        function handleAttack(type) {
+            if (currentLocalHealth <= 0 || gameOverState) return;
+
+            if (type === 'light') {
+                currentLocalHealth = Math.max(0, currentLocalHealth - 100);
+                socket.emit('attack', 'light');
+            } 
+            else if (type === 'ability') {
+                if (abilityCooldownActive) return;
+                
+                // Set local 1-second cooldown execution loop
+                abilityCooldownActive = true;
+                abilityBtn.disabled = true;
+                abilityBtn.innerText = "CD";
+
+                setTimeout(() => {
+                    abilityCooldownActive = false;
+                    if (!gameOverState) {
+                        abilityBtn.disabled = false;
+                        abilityBtn.innerText = "-200";
+                    }
+                }, 1000);
+
+                currentLocalHealth = Math.max(0, currentLocalHealth - 200);
+                socket.emit('attack', 'ability');
+            }
+            else if (type === 'heavy') {
+                if (localHeavySpent) return;
+                localHeavySpent = true;
+                heavyBtn.disabled = true;
+                currentLocalHealth = Math.max(0, currentLocalHealth - 1400);
+                socket.emit('attack', 'heavy');
+            }
+
+            renderHealth(currentLocalHealth, currentMaxHealth);
+
+            if (currentLocalHealth === 0) {
+                setButtonsDisabled(true);
+            }
+        }
+
+        function setButtonsDisabled(disabled) {
+            lightBtn.disabled = disabled;
+            heavyBtn.disabled = disabled;
+            if (disabled || abilityCooldownActive) {
+                abilityBtn.disabled = true;
+            } else {
+                abilityBtn.disabled = false;
+            }
+        }
+
+        lightBtn.addEventListener('pointerdown', (e) => { e.preventDefault(); handleAttack('light'); });
+        abilityBtn.addEventListener('pointerdown', (e) => { e.preventDefault(); handleAttack('ability'); });
+        heavyBtn.addEventListener('pointerdown', (e) => { e.preventDefault(); handleAttack('heavy'); });
         resetLink.addEventListener('click', () => socket.emit('requestReset'));
 
         socket.on('stateUpdate', (data) => {
-            const maxHealth = data.maxHealth || 1500;
-            const percentage = (data.health / maxHealth) * 100;
+            currentMaxHealth = data.maxHealth || 2000;
+            currentLocalHealth = data.health;
+            gameOverState = data.gameOver;
             
-            healthBar.style.width = `${percentage}%`;
-            healthText.innerText = `${data.health} / ${maxHealth}`;
+            renderHealth(currentLocalHealth, currentMaxHealth);
 
-            if (data.gameOver) {
-                lightBtn.disabled = true;
-                heavyBtn.disabled = true;
+            if (gameOverState) {
+                setButtonsDisabled(true);
+                abilityBtn.innerText = "-200";
                 healthBar.style.background = "#a1a1aa";
                 
-                // Compare current connection id with the winner token
                 if (data.winnerId === socket.id) {
-                    title.innerText = "YOU WIN";
+                    title.innerText = "OBJECTIVE SECURED";
                     title.style.color = "#18181b";
-                    document.body.style.backgroundColor = "#f0fdf4"; // Light green flash for winning
+                    document.body.style.backgroundColor = "#f0fdf4";
                 } else {
-                    title.innerText = "YOU LOSE";
+                    title.innerText = "OBJECTIVE STOLEN";
                     title.style.color = "#dc2626";
-                    document.body.style.backgroundColor = "#fef2f2"; // Light red flash for losing
+                    document.body.style.backgroundColor = "#fef2f2";
                 }
             } else {
                 title.innerText = "First to 0";
                 title.style.color = "#18181b";
-                lightBtn.disabled = false;
                 healthBar.style.background = "#18181b";
-                document.body.style.backgroundColor = "#fafafa"; // Standard backdrop reset
+                document.body.style.backgroundColor = "#fafafa";
+                
+                lightBtn.disabled = false;
+                if (!localHeavySpent) heavyBtn.disabled = false;
+                if (!abilityCooldownActive) {
+                    abilityBtn.disabled = false;
+                    abilityBtn.innerText = "-200";
+                }
             }
         });
 
         socket.on('heavyAttackSpent', () => {
+            localHeavySpent = true;
             heavyBtn.disabled = true;
         });
 
         socket.on('resetClientButtons', () => {
+            localHeavySpent = false;
             heavyBtn.disabled = false;
+            abilityCooldownActive = false;
+            abilityBtn.innerText = "-200";
         });
     </script>
 </body>
