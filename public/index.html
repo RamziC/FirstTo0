@@ -133,11 +133,11 @@
 </head>
 <body>
 
-    <h1 id="title">First to 0</h1>
+    <h1 id="title">Smite Fight</h1>
 
     <div class="hb-container">
         <div id="health-bar" class="hb-fill"></div>
-        <div id="health-text" class="hb-text">0 / 0</div>
+        <div id="health-text" class="hb-text">Loading...</div>
     </div>
 
     <div class="btn-group">
@@ -146,7 +146,7 @@
         <button id="heavy-btn" class="btn-heavy">-1400</button>
     </div>
 
-    <button id="reset-link">Reset</button>
+    <button id="reset-link">Reset Objective</button>
 
     <script src="/socket.io/socket.io.js"></script>
     <script>
@@ -160,20 +160,21 @@
         const heavyBtn = document.getElementById('heavy-btn');
         const resetLink = document.getElementById('reset-link');
 
-        let currentLocalHealth = 0;
-        let currentMaxHealth = 2000;
+        let currentLocalHealth = null;
+        let currentMaxHealth = null;
         let localHeavySpent = false;
         let abilityCooldownActive = false;
         let gameOverState = false;
 
         function renderHealth(health, max) {
+            if (max === 0 || max === null) return;
             const percentage = Math.max(0, (health / max) * 100);
             healthBar.style.width = `${percentage}%`;
             healthText.innerText = `${Math.max(0, health)} / ${max}`;
         }
 
         function handleAttack(type) {
-            if (currentLocalHealth <= 0 || gameOverState) return;
+            if (currentLocalHealth <= 0 || gameOverState || currentLocalHealth === null) return;
 
             if (type === 'light') {
                 currentLocalHealth = Math.max(0, currentLocalHealth - 100);
@@ -182,7 +183,6 @@
             else if (type === 'ability') {
                 if (abilityCooldownActive) return;
                 
-                // Set local 1-second cooldown execution loop
                 abilityCooldownActive = true;
                 abilityBtn.disabled = true;
                 abilityBtn.innerText = "CD";
@@ -250,7 +250,7 @@
                     document.body.style.backgroundColor = "#fef2f2";
                 }
             } else {
-                title.innerText = "First to 0";
+                title.innerText = "Smite Fight";
                 title.style.color = "#18181b";
                 healthBar.style.background = "#18181b";
                 document.body.style.backgroundColor = "#fafafa";
