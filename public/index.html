@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Smite Fight</title>
+    <title>First to 0</title>
     <style>
         body {
             font-family: system-ui, -apple-system, sans-serif;
@@ -133,7 +133,7 @@
 </head>
 <body>
 
-    <h1 id="title">Smite Fight</h1>
+    <h1 id="title">First to 0</h1>
 
     <div class="hb-container">
         <div id="health-bar" class="hb-fill"></div>
@@ -146,7 +146,7 @@
         <button id="heavy-btn" class="btn-heavy">-1400</button>
     </div>
 
-    <button id="reset-link">Reset Objective</button>
+    <button id="reset-link">Restart</button>
 
     <script src="/socket.io/socket.io.js"></script>
     <script>
@@ -250,7 +250,7 @@
                     document.body.style.backgroundColor = "#fef2f2";
                 }
             } else {
-                title.innerText = "Smite Fight";
+                title.innerText = "First to 0";
                 title.style.color = "#18181b";
                 healthBar.style.background = "#18181b";
                 document.body.style.backgroundColor = "#fafafa";
