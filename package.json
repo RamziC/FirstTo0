@@ -1,0 +1,13 @@
+{
+  "name": "First to 0",
+  "version": "1.0.0",
+  "description": "First to 0 wins.",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "express": "^4.19.2",
+    "socket.io": "^4.7.5"
+  }
+}

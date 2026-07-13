@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>First to 0</title>
+    <style>
+        body {
+            font-family: system-ui, -apple-system, sans-serif;
+            background-color: #fafafa;
+            color: #18181b;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            margin: 0;
+            padding: 24px;
+            box-sizing: border-box;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+
+        h1 {
+            font-size: 2.5rem;
+            font-weight: 800;
+            margin: 0 0 40px 0;
+            letter-spacing: -0.05em;
+            text-transform: uppercase;
+        }
+
+        .hb-container {
+            width: 100%;
+            max-width: 600px;
+            background-color: #e4e4e7;
+            border-radius: 12px;
+            padding: 6px;
+            margin-bottom: 40px;
+            position: relative; /* Anchor for the absolute text layer */
+            box-sizing: border-box;
+        }
+
+        .hb-fill {
+            height: 50px;
+            width: 100%;
+            background: #18181b;
+            border-radius: 8px;
+            transition: width 0.05s ease-out;
+        }
+
+        /* Floating text overlay that keeps numbers centered and responsive */
+        .hb-text {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: clamp(1.1rem, 4vw, 1.5rem); /* Automatically shrinks text on smaller screens */
+            font-weight: 700;
+            color: #ffffff;
+            mix-blend-mode: difference; /* Guarantees high text legibility on white or dark backgrounds */
+            pointer-events: none;
+        }
+
+        .btn-group {
+            display: flex;
+            gap: 20px;
+            width: 100%;
+            max-width: 600px;
+        }
+
+        button {
+            flex: 1;
+            height: 140px; /* Big, accessible tapping surfaces for mobile */
+            font-size: 2rem;
+            font-weight: 700;
+            border: 2px solid #18181b;
+            border-radius: 16px;
+            cursor: pointer;
+            transition: transform 0.05s, background-color 0.1s, color 0.1s;
+            touch-action: manipulation; /* Optimizes tap delay speeds on mobile platforms */
+        }
+
+        button:active:not(:disabled) {
+            transform: scale(0.96);
+        }
+
+        .btn-light {
+            background-color: #ffffff;
+            color: #18181b;
+        }
+        .btn-light:hover:not(:disabled) {
+            background-color: #f4f4f5;
+        }
+
+        .btn-heavy {
+            background-color: #18181b;
+            color: #ffffff;
+        }
+        .btn-heavy:hover:not(:disabled) {
+            background-color: #27272a;
+        }
+
+        button:disabled {
+            background-color: #f4f4f5;
+            color: #a1a1aa;
+            border-color: #e4e4e7;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        #reset-link {
+            margin-top: 80px;
+            background: none;
+            border: none;
+            color: #a1a1aa;
+            font-size: 0.75rem;
+            font-weight: 400;
+            cursor: pointer;
+            text-decoration: underline;
+            letter-spacing: 0.05em;
+            text-transform: uppercase;
+            padding: 8px;
+            height: auto;
+            flex: none;
+            width: auto;
+        }
+        #reset-link:hover {
+            color: #71717a;
+        }
+    </style>
+</head>
+<body>
+
+    <h1 id="title">First to 0</h1>
+
+    <div class="hb-container">
+        <div id="health-bar" class="hb-fill"></div>
+        <div id="health-text" class="hb-text">0 / 0</div>
+    </div>
+
+    <div class="btn-group">
+        <button id="light-btn" class="btn-light">-100</button>
+        <button id="heavy-btn" class="btn-heavy">-1400</button>
+    </div>
+
+    <button id="reset-link">Restart</button>
+
+    <script src="/socket.io/socket.io.js"></script>
+    <script>
+        const socket = io();
+
+        const title = document.getElementById('title');
+        const healthBar = document.getElementById('health-bar');
+        const healthText = document.getElementById('health-text');
+        const lightBtn = document.getElementById('light-btn');
+        const heavyBtn = document.getElementById('heavy-btn');
+        const resetLink = document.getElementById('reset-link');
+
+        lightBtn.addEventListener('click', () => socket.emit('attack', 'light'));
+        heavyBtn.addEventListener('click', () => socket.emit('attack', 'heavy'));
+        resetLink.addEventListener('click', () => socket.emit('requestReset'));
+
+        socket.on('stateUpdate', (data) => {
+            const maxHealth = data.maxHealth || 1500;
+            const percentage = (data.health / maxHealth) * 100;
+            
+            healthBar.style.width = `${percentage}%`;
+            healthText.innerText = `${data.health} / ${maxHealth}`;
+
+            if (data.gameOver) {
+                title.innerText = "Game Over";
+                title.style.color = "#dc2626";
+                lightBtn.disabled = true;
+                heavyBtn.disabled = true;
+                healthBar.style.background = "#a1a1aa";
+            } else {
+                title.innerText = "First to 0";
+                title.style.color = "#18181b";
+                lightBtn.disabled = false;
+                healthBar.style.background = "#18181b";
+            }
+        });
+
+        socket.on('heavyAttackSpent', () => {
+            heavyBtn.disabled = true;
+        });
+
+        socket.on('resetClientButtons', () => {
+            heavyBtn.disabled = false;
+        });
+    </script>
+</body>
+</html>
