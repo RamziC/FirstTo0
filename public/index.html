@@ -142,7 +142,7 @@
 
     <div class="btn-group">
         <button id="light-btn" class="btn-light">-100</button>
-        <button id="ability-btn" class="btn-medium">-200</button>
+        <button id="ability-btn" class="btn-medium">-300</button>
         <button id="heavy-btn" class="btn-heavy">-1400</button>
     </div>
 
@@ -185,17 +185,17 @@
                 
                 abilityCooldownActive = true;
                 abilityBtn.disabled = true;
-                abilityBtn.innerText = "-200";
+                abilityBtn.innerText = "-300";
 
                 setTimeout(() => {
                     abilityCooldownActive = false;
                     if (!gameOverState) {
                         abilityBtn.disabled = false;
-                        abilityBtn.innerText = "-200";
+                        abilityBtn.innerText = "-300";
                     }
                 }, 1000);
 
-                currentLocalHealth = Math.max(0, currentLocalHealth - 200);
+                currentLocalHealth = Math.max(0, currentLocalHealth - 300);
                 socket.emit('attack', 'ability');
             }
             else if (type === 'heavy') {
@@ -237,7 +237,7 @@
 
             if (gameOverState) {
                 setButtonsDisabled(true);
-                abilityBtn.innerText = "-200";
+                abilityBtn.innerText = "-300";
                 healthBar.style.background = "#a1a1aa";
                 
                 if (data.winnerId === socket.id) {
@@ -259,7 +259,7 @@
                 if (!localHeavySpent) heavyBtn.disabled = false;
                 if (!abilityCooldownActive) {
                     abilityBtn.disabled = false;
-                    abilityBtn.innerText = "-200";
+                    abilityBtn.innerText = "-300";
                 }
             }
         });
@@ -273,7 +273,7 @@
             localHeavySpent = false;
             heavyBtn.disabled = false;
             abilityCooldownActive = false;
-            abilityBtn.innerText = "-200";
+            abilityBtn.innerText = "-300";
         });
     </script>
 </body>
