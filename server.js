@@ -5,8 +5,14 @@ const path = require('path');
 
 const app = express();
 const server = http.createServer(app);
+
 const io = new Server(server, {
-    cors: { origin: "*" }
+    cors: { origin: "*" },
+    transports: ['websocket'],
+    allowEIO3: false,
+    pingTimeout: 2000,
+    pingInterval: 1000,
+    perMessageDeflate: false 
 });
 
 app.use(express.static(path.join(__dirname, 'public')));
@@ -15,13 +21,14 @@ let gameState = {
     health: 0,
     maxHealth: 0,
     isGameOver: false,
-    winnerId: null, // Tracks the socket.id of the winner
+    winnerId: null,
     usedHeavyAttack: {}
 };
 
 function updateMaxHealth() {
     const playerCount = io.engine.clientsCount;
-    const calculatedMax = Math.max(1, playerCount) * 1500; 
+    // Increased base threshold to 2,000 HP per player
+    const calculatedMax = Math.max(1, playerCount) * 2000; 
     gameState.maxHealth = calculatedMax;
 
     if (!gameState.isGameOver) {
@@ -31,7 +38,7 @@ function updateMaxHealth() {
 
 function resetGame() {
     const playerCount = io.engine.clientsCount;
-    gameState.maxHealth = Math.max(1, playerCount) * 1500;
+    gameState.maxHealth = Math.max(1, playerCount) * 2000;
     gameState.health = gameState.maxHealth;
     gameState.isGameOver = false;
     gameState.winnerId = null;
@@ -49,14 +56,12 @@ function broadcastState() {
         health: gameState.health, 
         maxHealth: gameState.maxHealth,
         gameOver: gameState.isGameOver,
-        winnerId: gameState.winnerId // Send winner details out to all clients
+        winnerId: gameState.winnerId
     });
 }
 
 io.on('connection', (socket) => {
-    console.log(`Player connected: ${socket.id}`);
     gameState.usedHeavyAttack[socket.id] = false;
-    
     updateMaxHealth();
     
     if (gameState.health === 0 && !gameState.isGameOver) {
@@ -71,6 +76,9 @@ io.on('connection', (socket) => {
         if (type === 'light') {
             gameState.health = Math.max(0, gameState.health - 100);
         } 
+        else if (type === 'ability') {
+            gameState.health = Math.max(0, gameState.health - 200);
+        }
         else if (type === 'heavy') {
             if (gameState.usedHeavyAttack[socket.id]) return;
             
@@ -79,10 +87,9 @@ io.on('connection', (socket) => {
             socket.emit('heavyAttackSpent');
         }
 
-        // Check if this specific hit ended the game
         if (gameState.health === 0 && !gameState.isGameOver) {
             gameState.isGameOver = true;
-            gameState.winnerId = socket.id; // Mark this connection as the champion
+            gameState.winnerId = socket.id;
         }
 
         broadcastState();
@@ -93,7 +100,6 @@ io.on('connection', (socket) => {
     });
 
     socket.on('disconnect', () => {
-        console.log(`Player disconnected: ${socket.id}`);
         delete gameState.usedHeavyAttack[socket.id];
         updateMaxHealth();
         broadcastState();
