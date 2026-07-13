@@ -241,11 +241,11 @@
                 healthBar.style.background = "#a1a1aa";
                 
                 if (data.winnerId === socket.id) {
-                    title.innerText = "OBJECTIVE SECURED";
+                    title.innerText = "You win!";
                     title.style.color = "#18181b";
                     document.body.style.backgroundColor = "#f0fdf4";
                 } else {
-                    title.innerText = "OBJECTIVE STOLEN";
+                    title.innerText = "You lost!";
                     title.style.color = "#dc2626";
                     document.body.style.backgroundColor = "#fef2f2";
                 }
