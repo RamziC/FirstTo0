@@ -76,7 +76,7 @@ io.on('connection', (socket) => {
             gameState.health = Math.max(0, gameState.health - 100);
         } 
         else if (type === 'ability') {
-            gameState.health = Math.max(0, gameState.health - 200);
+            gameState.health = Math.max(0, gameState.health - 300);
         }
         else if (type === 'heavy') {
             if (gameState.usedHeavyAttack[socket.id]) return;
